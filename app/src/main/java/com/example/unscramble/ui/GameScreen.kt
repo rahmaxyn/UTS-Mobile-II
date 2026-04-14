@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -62,6 +63,12 @@ import com.example.unscramble.ui.theme.UnscrambleTheme
 fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
     val gameUiState by gameViewModel.uiState.collectAsState()
     val mediumPadding = dimensionResource(R.dimen.padding_medium)
+    val context = LocalContext.current
+    val gameViewModel: GameViewModel = viewModel()
+
+    LaunchedEffect(Unit) {
+        gameViewModel.initDatabase(context)
+    }
 
     Column(
         modifier = Modifier
@@ -123,6 +130,7 @@ fun GameScreen(gameViewModel: GameViewModel = viewModel()) {
         if (gameUiState.isGameOver) {
             FinalScoreDialog(
                 score = gameUiState.score,
+                correctWords = gameUiState.correctWords,
                 onPlayAgain = { gameViewModel.resetGame() }
             )
         }
@@ -219,6 +227,7 @@ fun GameLayout(
 @Composable
 private fun FinalScoreDialog(
     score: Int,
+    correctWords: List<String>,
     onPlayAgain: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -231,7 +240,7 @@ private fun FinalScoreDialog(
             // onCloseRequest.
         },
         title = { Text(text = stringResource(R.string.congratulations)) },
-        text = { Text(text = stringResource(R.string.you_scored, score)) },
+        text = { Text("Score: $score\n\nCorrect words:\n${correctWords.joinToString(", ")}") },
         modifier = modifier,
         dismissButton = {
             TextButton(

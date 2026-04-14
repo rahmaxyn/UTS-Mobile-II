@@ -16,10 +16,13 @@
 
 package com.example.unscramble.ui
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.room.Room
 import com.example.unscramble.data.MAX_NO_OF_WORDS
 import com.example.unscramble.data.SCORE_INCREASE
 import com.example.unscramble.data.allWords
@@ -27,12 +30,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel containing the app data and methods to process the data
  */
-class GameViewModel : ViewModel() {
-
+class GameViewModel: ViewModel() {
+    lateinit var historyDAO: HistoryDAO
     // Game UI state
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
@@ -72,6 +76,12 @@ class GameViewModel : ViewModel() {
             // User's guess is correct, increase the score
             // and call updateGameState() to prepare the game for next round
             val updatedScore = _uiState.value.score.plus(SCORE_INCREASE)
+            viewModelScope.launch {
+                historyDAO.insert(
+                    History(currentWord = currentWord, isCorrect = true)
+                )
+            }
+
             updateGameState(updatedScore)
         } else {
             // User's guess is wrong, show an error
@@ -99,12 +109,17 @@ class GameViewModel : ViewModel() {
     private fun updateGameState(updatedScore: Int) {
         if (usedWords.size == MAX_NO_OF_WORDS){
             //Last round in the game, update isGameOver to true, don't pick a new word
-            _uiState.update { currentState ->
-                currentState.copy(
-                    isGuessedWordWrong = false,
-                    score = updatedScore,
-                    isGameOver = true
-                )
+            viewModelScope.launch {
+                val correctList = historyDAO.getCorrectWords()
+
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isGuessedWordWrong = false,
+                        score = updatedScore,
+                        isGameOver = true,
+                        correctWords = correctList.map { it.currentWord }
+                    )
+                }
             }
         } else{
             // Normal round in the game
@@ -138,5 +153,16 @@ class GameViewModel : ViewModel() {
             usedWords.add(currentWord)
             shuffleCurrentWord(currentWord)
         }
+    }
+    fun initDatabase(context: Context) {
+        val db = Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "word_db"
+        )
+            .fallbackToDestructiveMigration()
+            .build()
+
+        historyDAO = db.historyDao()
     }
 }
