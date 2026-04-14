@@ -2,10 +2,14 @@ package com.example.unscramble.ui
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.PrimaryKey
 
-@Entity("histories")
-
+@Entity(tableName = "histories")
 data class History(
-    @ColumnInfo("Answer")
-    val cover: String? = null,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
+    val currentWord: String,
+
+    val isCorrect: Boolean = true
 )

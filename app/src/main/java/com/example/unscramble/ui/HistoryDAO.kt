@@ -6,9 +6,9 @@ import androidx.room.Query
 
 @Dao
 interface HistoryDAO {
-    @Query("Select * from histories")
-    suspend fun getAllBooks():List<History>
+    @Query("SELECT * FROM histories WHERE isCorrect = 1")
+    suspend fun getCorrectWords(): List<History>
 
     @Insert
-    suspend fun insert(vararg histories: History)
+    suspend fun insert(vararg history: History)
 }
